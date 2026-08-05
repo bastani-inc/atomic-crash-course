@@ -2,8 +2,8 @@
 name: strict-inspector
 description: Inspect code for correctness and regressions
 tools: read, search, bash
-model: anthropic/claude-sonnet-4
-fallbackModels: openai/gpt-5-mini
+model: anthropic/claude-opus-5:high
+fallbackModels: openai-codex/gpt-5.6-sol:xhigh
 inheritProjectContext: true
 ---
 
