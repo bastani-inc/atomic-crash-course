@@ -405,8 +405,12 @@ into new session files.
 
 ### 2.2 Verbatim compaction
 
-Compaction is deletion-only. The model picks line ranges to drop; every retained line stays
-byte-identical and in order. Spans you wrap in `<keepContext>` are protected mechanically.
+Every other coding agent runtime compacts a full context window by summarizing it: a model
+rewrites your transcript and you keep the rewrite. Atomic is the only one shipping today
+that compacts **verbatim**. Nothing is rewritten. The planner only chooses line ranges to
+delete, and every line that survives is byte-identical and still in order — so a quoted
+error, a file path, or an exact command cannot come back subtly wrong. Spans you wrap in
+`<keepContext>` are protected mechanically.
 
 **Try it**
 
@@ -446,6 +450,27 @@ byte-identical and in order. Spans you wrap in `<keepContext>` are protected mec
      }
    }
    ```
+
+**Pinning with `<keepContext>`**
+
+Compaction ranks lines one at a time, and it is biased toward keeping what looks like the
+task. A long restated objective survives; the single line that bounds it is the cheaper
+deletion. That is how a long session drifts into confidently doing a broader version of
+what you asked for. `<keepContext>` is the fix: the tagged span, including the tag lines,
+is protected verbatim no matter how hard the transcript is compressed.
+
+Tag the short things that change the meaning of the work:
+
+- Constraints and prohibitions — "never rename exported functions", "do not touch `main`".
+- Acceptance criteria and contracts the result is judged against.
+- Identifiers a session must not lose — a branch name, a worktree path, an issue number,
+  a run ID.
+- A late correction. A mid-run instruction is one short message competing with a whole
+  transcript, so it is exactly the thing compaction drops first.
+
+Do not tag bulk material. Protected lines count against the keep budget rather than raising
+it, so a large pinned block forces everything around it to compress harder. Pin the rule,
+not the file the rule applies to — pass bulk context as files the agent can re-read.
 
 **Compaction settings**
 
