@@ -1,10 +1,37 @@
-# Atomic crash course
+<h1 align="center">Atomic crash course</h1>
 
-A hands-on course for [Atomic](https://github.com/bastani-inc/atomic), the coding agent
-that runs in your terminal. Six parts, thirty-ish lessons, roughly three hours end to end.
-Every lesson is a thing you type and a thing you should see.
+<p align="center"><img width="800" height="450" alt="Atomic coding agent runtime" src="https://github.com/bastani-inc/atomic/raw/main/assets/atomic-promo.gif" /></p>
 
-**Repo:** <https://github.com/bastani-inc/atomic> · **Docs:** <https://docs.bastani.ai/>
+<p align="center">
+  <b>A hands-on course for <a href="https://github.com/bastani-inc/atomic">Atomic</a>, the verifiable coding agent runtime.</b>
+</p>
+
+<p align="center">
+  <b>Six parts, thirty-odd lessons, about three hours. Every lesson is a thing you type and a thing you should see.</b>
+</p>
+
+<p align="center">
+  <a href="#before-you-start"><b>Get started →</b></a>
+  &nbsp;·&nbsp;
+  <a href="#contents">Contents</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/bastani-inc/atomic">Atomic repo</a>
+  &nbsp;·&nbsp;
+  <a href="https://docs.bastani.ai/">Docs</a>
+</p>
+
+<p align="center">
+  <a href="https://docs.bastani.ai/"><img src="https://img.shields.io/badge/docs-atomic-blue" alt="Docs"></a>
+  <a href="https://discord.gg/9CvdXUGXR4"><img src="https://img.shields.io/badge/join%20community-discord-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://deepwiki.com/bastani-inc/atomic"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+  <a href="https://github.com/bastani-inc/atomic"><img src="https://img.shields.io/github/stars/bastani-inc/atomic?style=flat&logo=github&label=star%20atomic" alt="Star Atomic"></a>
+</p>
+
+<p align="center">
+  If Atomic is useful to you, star <a href="https://github.com/bastani-inc/atomic">the repository</a> ⭐
+</p>
+
+---
 
 You start with a plain chat session and finish having written your own tools, skills,
 themes, subagents, and a durable workflow with a bounded repair loop. The repo you are
@@ -2762,3 +2789,21 @@ Two things this course did not cover, both worth an afternoon:
 
 Full docs: <https://docs.bastani.ai/>. Source, issues, and the shipped `examples/` ladder:
 <https://github.com/bastani-inc/atomic>.
+
+## Support and community
+
+Join the [Atomic Discord community](https://discord.gg/9CvdXUGXR4) for questions, help,
+feedback, feature ideas, and examples of what people have built. Bring what you make in
+Part 3 and Part 6 — extensions, skills, and workflows are the easiest things to share.
+
+To contribute workflows, see the
+[atomic-workflows repository](https://github.com/lavaman131/atomic-workflows).
+
+<p align="center">
+  <a href="https://github.com/bastani-inc/atomic"><img src="https://img.shields.io/github/stars/bastani-inc/atomic?style=for-the-badge&logo=github&label=Star%20Atomic" alt="Star Atomic"></a>
+  <a href="https://discord.gg/9CvdXUGXR4"><img src="https://img.shields.io/badge/Join-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
+</p>
+
+<p align="center">
+  If this course was useful, star <a href="https://github.com/bastani-inc/atomic">Atomic</a> ⭐
+</p>
