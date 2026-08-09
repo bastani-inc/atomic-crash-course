@@ -1517,6 +1517,37 @@ The `intercom` actions:
 
 Workflows are durable, inspectable TypeScript programs that drive agents. Run these lessons from the repo root. Custom workflow files go in `.atomic/workflows/`.
 
+The bundled workflows in 6.1 are a starting set, not the ceiling. The point of the system
+is that you can assemble your own **verifiable graph** out of the same primitives: stages
+with their own models and prompts, `ctx.tool(...)` for durable gates that actually run a
+build, a test, or a request, `ctx.workflow(...)` to nest one graph inside another,
+structured outputs to pass typed results between stages, human-in-the-loop prompts, and
+bounded repair loops with an explicit stop condition. A stage can claim it fixed something;
+a `ctx.tool` gate proves it. Verification runs on real tool results, not on the model's
+word.
+
+You do not have to hand-write the file to get one. Describe the graph you want and Atomic
+writes it ([A.8](#a8-natural-language-workflow-authoring)). Asks of this shape produce real
+graphs:
+
+```text
+Spawn adversarial verification workflow that conforms to the code style or patterns in the codebase and proposes removals of anti patterns focus on the current diff.
+```
+
+```text
+Spawn adversarial verification and check for bottlenecks or inefficiencies in the code. Make actual requests between entry points of the codebase to identify latency regressions or improvements focus on the current diff.
+```
+
+```text
+Spawn adversarial verification that review the changes on this diff and confirms via real usage and all tests (no smoke checks). Post evidence of any UX testing as video to the PR.
+```
+
+Each one has the same skeleton: a fresh-context skeptic that cannot see the implementer's
+reasoning, a bounded set of probes it must justify, gates that execute those probes, and a
+repair loop that stops on evidence. Only the probe — pattern match, latency measurement,
+full test run plus a recorded session — changes. 6.5 builds this shape by hand so you can
+see every piece.
+
 ### 6.1 Touring the builtins
 
 Atomic bundles nine workflows. This lesson launches one in the background and flies around the live graph viewer.
