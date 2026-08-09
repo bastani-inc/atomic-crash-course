@@ -46,13 +46,6 @@ The seed files are already committed:
 | `.atomic/agents/strict-inspector.md` | Lesson 5.2 |
 | `sdk-demo/` | Lesson 4.3 |
 
-Two things to check before Part 4 and Part 5:
-
-```bash
-cd sdk-demo && npm install && cd ..   # once, needs network
-git add -A && git commit -m wip       # worktree isolation needs a clean tree
-```
-
 The lessons write new files into `.atomic/`. To reset between runs,
 `git clean -fd .atomic/` and re-checkout the seeds.
 
@@ -1103,12 +1096,17 @@ need Ollama running with `ollama pull llama3.1:8b`. Without it, you can still do
 
 The whole agent — tools, skills, extensions, session persistence — is a library. Twenty
 lines of TypeScript create a session, subscribe to the same event stream as `--mode json`,
-and prompt it. This lesson uses the `sdk-demo/` directory, which already has
-`@bastani/atomic` installed.
+and prompt it. This lesson runs in the `sdk-demo/` directory.
 
 **Try it**
 
-1. Ask Atomic to create the script:
+1. Install the dependency once. This is the only step in the course that needs network:
+
+   ```bash
+   cd sdk-demo && npm install && cd ..
+   ```
+
+2. Ask Atomic to create the script:
 
    ```text
    Create sdk-demo/agent.ts with EXACTLY the TypeScript below.
@@ -1133,7 +1131,7 @@ and prompt it. This lesson uses the `sdk-demo/` directory, which already has
    await session.prompt("What files are in the current directory?");
    ```
 
-2. Run it. Both runners execute the TypeScript directly:
+3. Run it. Both runners execute the TypeScript directly:
 
    ```bash
    cd sdk-demo && bun run agent.ts
@@ -1141,13 +1139,13 @@ and prompt it. This lesson uses the `sdk-demo/` directory, which already has
 
    You should see tokens stream in from a full agent session.
 
-3. Browse the shipped example ladder, 13 files from minimal to full session runtime:
+4. Browse the shipped example ladder, 13 files from minimal to full session runtime:
 
    ```bash
    ls sdk-demo/node_modules/@bastani/atomic/examples/sdk/
    ```
 
-4. Read the `AgentSession` surface you just used. The interface also exposes
+5. Read the `AgentSession` surface you just used. The interface also exposes
    `steer()` and `followUp()` for queueing during streaming, plus `setModel()`,
    `setThinkingLevel()`, `compact()`, `abort()`, and `navigateTree()`:
 
@@ -1161,7 +1159,7 @@ and prompt it. This lesson uses the `sdk-demo/` directory, which already has
      followUp(text: string): Promise<void>;
    ```
 
-5. Restrict what an embedded agent may do with the same vocabulary as the CLI:
+6. Restrict what an embedded agent may do with the same vocabulary as the CLI:
    `createAgentSession({ tools: ["read", "bash"] })` or
    `createAgentSession({ excludedTools: ["ask_user_question"] })`.
 
@@ -1269,10 +1267,12 @@ and you get a separate diff per child to merge deliberately.
 This lesson needs two terminals, both in the repo root: Terminal A runs Atomic,
 Terminal B is a plain shell.
 
-1. **Terminal B** — confirm the working tree is clean:
+1. **Terminal B** — worktree isolation needs a clean tree. Check, and commit if anything
+   is outstanding:
 
    ```bash
    git status --short
+   git add -A && git commit -m wip   # only if it printed anything
    ```
 
 2. **Terminal A** — start Atomic and prompt:
