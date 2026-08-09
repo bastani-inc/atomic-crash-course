@@ -817,11 +817,37 @@ Then:
 
    The agent reads `SKILL.md`, then runs the helper script.
 3. Force-load it instead: run `/skill:repo-stats`. Anything you type after the command is appended to the skill content as `User: <args>`.
+4. Skills also ship with Atomic. Take a deliberately vague prompt and have one rewrite it:
+
+   ```text
+   /skill:prompt-engineer Rewrite this vague prompt into a precise one I can paste back: "make the client code better"
+   ```
+
+   The skill's full instructions load, and you get back a prompt with a concrete target
+   file, a definition of "better", constraints, and a success check — instead of an agent
+   guessing what you meant.
+5. Paste the rewritten prompt into the same session and compare the result with what
+   `make the client code better` would have produced against `src-client.ts`.
+
+**Bundled skills worth knowing**
+
+| Skill | Use it for |
+|---|---|
+| `prompt-engineer` | Turn a vague ask into a precise one. Also for writing and debugging prompts. |
+| `tdd` | Red-green-refactor. Forces a failing test before the fix. |
+| `playwright-cli` | Drive a real browser: click through a page, assert behavior, record what happened. |
+| `tmux` | Control interactive CLIs — send keys, capture output, watch for a prompt. |
+| `impeccable` | Frontend work: layout, hierarchy, spacing, color, motion, accessibility, UX copy. |
+
+Others ship too: `liteparse` (pull data out of PDF/DOCX/XLSX), `subagent`, `intercom`,
+`create-spec`, `research-codebase`, and `skill-creator`. Run `/skill:` and let the
+completion list show you what is loaded.
 
 **What to notice**
 
 - Progressive disclosure: the description is always in context, the instructions are not. That is why a vague description means the skill never fires.
 - Models do not always load a matching skill on their own. `/skill:name` is the deterministic path.
+- The bundled skills are the same format as the one you just wrote. Read one for a working example of a good description and a helper script.
 - Skills written for other harnesses work unchanged. Add their directories to the `skills` array in settings:
 
   ```json
