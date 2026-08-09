@@ -17,7 +17,7 @@ Install Atomic and run `/login` once for at least one provider — see the
 
 Two lessons want extra pieces: [Ollama](https://ollama.com/) with
 `ollama pull llama3.1:8b` for 4.2, and a Postgres reachable by Atomic for durable workflow
-resume in 6.4, which degrades to non-durable without one.
+resume in 6.5, which degrades to non-durable without one.
 
 ## Setup
 
@@ -40,7 +40,7 @@ The seed files are already committed:
 |---|---|
 | `greeter.ts` | Lessons 1.1, 1.2 |
 | `src-client.ts` | Lessons 2.x, 5.x — has a planted null-check bug |
-| `demo-app/server.js` | Lessons 6.4, 6.5 — has a planted hardcoded secret and a SQL injection |
+| `demo-app/server.js` | Lessons 6.5, 6.6 — has a planted hardcoded secret and a SQL injection |
 | `notes.md`, `plan.md` | Context-reference lessons |
 | `AGENTS.md` | Loaded automatically; keeps answers short |
 | `.atomic/agents/strict-inspector.md` | Lesson 5.2 |
@@ -96,10 +96,11 @@ may need swapping for ones your providers actually serve.
 
 **[Part 6 — Workflows](#part-6--workflows)**
 · [6.1 Touring the builtins](#61-touring-the-builtins)
-· [6.2 Writing your own workflow](#62-writing-your-own-workflow)
-· [6.3 Human-in-the-loop gates](#63-human-in-the-loop-gates)
-· [6.4 Durability and resume](#64-durability-and-resume)
-· [6.5 Security review with a repair loop](#65-security-review-with-a-repair-loop)
+· [6.2 Steer and control a live run](#62-steer-and-control-a-live-run)
+· [6.3 Writing your own workflow](#63-writing-your-own-workflow)
+· [6.4 Human-in-the-loop gates](#64-human-in-the-loop-gates)
+· [6.5 Durability and resume](#65-durability-and-resume)
+· [6.6 Security review with a repair loop](#66-security-review-with-a-repair-loop)
 
 **[Extras](#extras)** — ten optional lessons: keybindings, permission gates, runtime
 prompt mutation, prompt templates, parallel review, background subagents, intercom groups,
@@ -1681,7 +1682,7 @@ Spawn adversarial verification that review the changes on this diff and confirms
 Each one has the same skeleton: a fresh-context skeptic that cannot see the implementer's
 reasoning, a bounded set of probes it must justify, gates that execute those probes, and a
 repair loop that stops on evidence. Only the probe — pattern match, latency measurement,
-full test run plus a recorded session — changes. 6.5 builds this shape by hand so you can
+full test run plus a recorded session — changes. 6.6 builds this shape by hand so you can
 see every piece.
 
 ### 6.1 Touring the builtins
@@ -1739,7 +1740,86 @@ The bundled set:
 
 **Reference:** [workflows](https://docs.bastani.ai/workflows)
 
-### 6.2 Writing your own workflow
+### 6.2 Steer and control a live run
+
+A running workflow is not a black box you wait on. You can ask it what it is doing, correct
+it mid-flight, hold it, and kill it — and you can do all of that in plain English, because
+the agent drives the same workflow tool the slash commands do.
+
+**Try it**
+
+1. Launch something with enough stages to interrupt:
+
+   ```text
+   /workflow fan-out-and-synthesize prompt="Map this repository by independent subsystem and synthesize cited findings" max_branches=4
+   ```
+
+2. Ask, in plain English, what is running. No run id, no command syntax:
+
+   ```text
+   What workflows are running right now, and which stage is each one on?
+   ```
+
+3. Steer it while it works. This is the important one — the message reaches the live stage
+   and the run keeps its checkpoints:
+
+   ```text
+   Steer the running fan-out workflow: tell it to skip node_modules and sdk-demo entirely, and to cite file paths with line numbers in every finding.
+   ```
+
+   Wrap anything the stage must not lose in `<keepContext>`. A steer arrives late into an
+   already-long stage, so it is exactly the message compaction drops first:
+
+   ```text
+   Steer the running workflow with this exact text: <keepContext>Cite file:line for every claim. Do not read node_modules.</keepContext>
+   ```
+
+4. Hold it, then let it go again:
+
+   ```text
+   Pause the running workflow, show me what the current stage produced so far, then resume it.
+   ```
+
+5. Inspect one stage's work without stopping anything:
+
+   ```text
+   Show me the stages of the running workflow, then give me the transcript path for the synthesis stage.
+   ```
+
+   Search that path with `grep` rather than reading the whole file.
+6. End it deliberately. `quit` keeps the run resumable; `interrupt` stops the current turn:
+
+   ```text
+   Quit the running workflow, then confirm its status is terminal.
+   ```
+
+7. The same operations as commands, when you want them exactly:
+
+   ```text
+   /workflow status
+   /workflow connect <run-id>
+   /workflow attach <run-id> <stage>
+   /workflow interrupt <run-id>
+   /workflow quit <run-id>
+   /workflow resume <run-id> [stage] <message>
+   ```
+
+**What to notice**
+
+- Prompting and the slash commands hit the same surface. Natural language is faster when
+  you have one run; the commands are better when you need a specific stage or an exact run
+  id.
+- Steering only works while the run is nonterminal. Once a run has completed, failed, or
+  been quit, a steer is rejected — start a new run instead of trying to reopen a finished
+  one.
+- Ask for a stage's transcript path, then `grep` it. Reading a full stage transcript into
+  your own context is how you lose the context you were trying to save.
+- A run keeps going while you chat. You do not have to sit in the graph viewer, and
+  start/finish/failure notices arrive on their own.
+
+**Reference:** [workflows](https://docs.bastani.ai/workflows)
+
+### 6.3 Writing your own workflow
 
 A complete custom workflow is about 25 lines of plain TypeScript. Atomic loads it with [jiti](https://github.com/unjs/jiti), so there is no build step.
 
@@ -1811,7 +1891,7 @@ A complete custom workflow is about 25 lines of plain TypeScript. Atomic loads i
 
 **Reference:** [workflows](https://docs.bastani.ai/workflows)
 
-### 6.3 Human-in-the-loop gates
+### 6.4 Human-in-the-loop gates
 
 Workflows can stop mid-code and wait for you. The `ctx.ui` primitives suspend at the callsite and appear as awaiting-input nodes in the graph.
 
@@ -1897,11 +1977,12 @@ ctx.ui.select<T extends string>(message: string, options: readonly T[]): Promise
 
 **Reference:** [workflows](https://docs.bastani.ai/workflows)
 
-### 6.4 Durability and resume
+### 6.5 Durability and resume
 
 Kill a live workflow on purpose and get it back. Runs checkpoint as they go, so a resumed run replays completed work instead of redoing it.
 
-The control commands:
+The control commands from [6.2](#62-steer-and-control-a-live-run), with what each one means
+for a checkpointed run:
 
 ```text
 /workflow status                       # list retained active and terminal runs
@@ -1945,7 +2026,7 @@ The control commands:
 
 **Reference:** [workflows](https://docs.bastani.ai/workflows)
 
-### 6.5 Security review with a repair loop
+### 6.6 Security review with a repair loop
 
 This composes everything: a fresh-context audit, a schema-gated independent verifier, durable ledger writes, a human confirm gate before each repair, and a bounded repair loop that stays acyclic.
 
@@ -2656,7 +2737,7 @@ Docs live at <https://docs.bastani.ai/>. Shipped examples live under the install
 - **5.1–5.2 Delegation and worktrees** — [subagents](https://docs.bastani.ai/subagents)
 - **5.3–5.4 Intercom coordination and escalation** — [intercom](https://docs.bastani.ai/intercom), [subagents](https://docs.bastani.ai/subagents)
 - **5.5–5.6 Context handoff** — [intercom](https://docs.bastani.ai/intercom), [prompt-templates](https://docs.bastani.ai/prompt-templates)
-- **6.1–6.5 Workflows** — [workflows](https://docs.bastani.ai/workflows)
+- **6.1–6.6 Workflows** — [workflows](https://docs.bastani.ai/workflows)
 - **A.1 Keybindings** — [keybindings](https://docs.bastani.ai/keybindings)
 - **A.2 Permission gate** — `examples/extensions/permission-gate.ts`
 - **A.3 Pirate mode** — `examples/extensions/pirate.ts`
