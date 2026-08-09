@@ -12,13 +12,8 @@ reading this in **is** the workspace: the seed files the lessons edit are alread
 
 ## Before you start
 
-Install Atomic and log in once — [installation and auth](https://docs.bastani.ai/quickstart):
-
-```bash
-bun install -g @bastani/atomic   # or: npm install -g @bastani/atomic
-atomic
-/login                           # then pick a provider
-```
+Install Atomic and run `/login` once for at least one provider — see the
+[quickstart](https://docs.bastani.ai/quickstart).
 
 You also need:
 
