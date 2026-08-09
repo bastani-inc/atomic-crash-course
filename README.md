@@ -15,16 +15,9 @@ reading this in **is** the workspace: the seed files the lessons edit are alread
 Install Atomic and run `/login` once for at least one provider — see the
 [quickstart](https://docs.bastani.ai/quickstart).
 
-You also need:
-
-| | |
-|---|---|
-| `git` | Lesson 5.2 needs a clean working tree. |
-| `bun` | Runs the TypeScript seed files and the SDK sample. |
-
-Optional, for two lessons: [Ollama](https://ollama.com/) with `ollama pull llama3.1:8b`
-(lesson 4.2), and a Postgres reachable by Atomic for durable workflow resume (lesson 6.4 —
-it degrades to non-durable without one).
+Two lessons want extra pieces: [Ollama](https://ollama.com/) with
+`ollama pull llama3.1:8b` for 4.2, and a Postgres reachable by Atomic for durable workflow
+resume in 6.4, which degrades to non-durable without one.
 
 ## Setup
 
@@ -106,6 +99,7 @@ may need swapping for ones your providers actually serve.
 · [5.3 Planner–worker intercom coordination](#53-plannerworker-intercom-coordination)
 · [5.4 Escalating to a human supervisor](#54-escalating-to-a-human-supervisor)
 · [5.5 Intercom context handoff](#55-intercom-context-handoff)
+· [5.6 A handoff command of your own](#56-a-handoff-command-of-your-own)
 
 **[Part 6 — Workflows](#part-6--workflows)**
 · [6.1 Touring the builtins](#61-touring-the-builtins)
@@ -1537,11 +1531,127 @@ The `intercom` actions:
 
 **Reference:** [intercom](https://docs.bastani.ai/intercom)
 
+### 5.6 A handoff command of your own
+
+The usual way to move work between agents is a file: compact the conversation into a
+markdown brief, drop it in a temp directory, point a fresh agent at the path. It works, and
+it has three known failure modes. The path differs per machine and gets cleared. The
+document is a dead copy the moment it is written. And the next agent treats it as a
+contract it cannot cross-examine, so one belief written as a fact poisons everything after
+it.
+
+Intercom removes all three. You deliver the brief straight into a running session, and the
+session that wrote it is still on the other end of `ask`. The primary source stays alive.
+Wrap it in a prompt template and you have a `/handoff` command that encodes your own rules
+for what travels.
+
+**Try it**
+
+This lesson needs the two sessions from 5.5: `planner` in Terminal A and `fresh` in
+Terminal C.
+
+1. **Terminal A** — create the template:
+
+   ```text
+   Create .atomic/prompts/handoff.md with EXACTLY this content:
+
+   ---
+   description: Hand this session's context to another Atomic session over intercom
+   argument-hint: "<session-name> <what the next session should do>"
+   ---
+   Hand off to the intercom session named "$1". The next session's job: ${@:2}
+
+   Build the brief for THAT job only, then deliver it with one intercom `send`.
+
+   Message body, in this order:
+   1. One sentence naming what the next session is taking over.
+   2. A `<keepContext>` block, under ten lines, holding only what it must not lose:
+      constraints, acceptance criteria, branch, worktree path, file paths, issue or run ids.
+   3. In flight: what is half-done right now and the next concrete action.
+   4. Open questions, each tagged `verified` or `assumed`.
+
+   Rules:
+   - Reference settled work by path, URL, or commit sha. Never paste a spec, diff, or file
+     body into the prose.
+   - Anything this session did not itself run or read is `assumed`. Never promote a belief
+     to a fact.
+   - Redact secrets, tokens, and keys. If one is load-bearing, name the env var instead.
+   - Put supporting excerpts in `attachments`, not in the prose: `type: "snippet"` with a
+     `language` for code, `type: "context"` for notes. Name each one for what it is.
+   - End with: "Reply over intercom if anything above is assumed rather than verified —
+     this session is still open."
+
+   Then print the brief you sent so I can read it.
+   ```
+
+2. **Terminal A** — run `/reload`, then use it:
+
+   ```text
+   /handoff fresh take over the null-email fix in src-client.ts and get it type-checking
+   ```
+
+3. **Terminal A** — read the printed brief before moving on. Check that every `assumed`
+   line really is assumed, and that no file body got pasted in.
+4. **Terminal C** — the brief arrives inline. Put it to work without reading anything:
+
+   ```text
+   Using only the handoff you just received, tell me the next concrete action and the
+   constraints I have to respect. Then do it.
+   ```
+
+5. **Terminal C** — cross-examine the source, which a file could not do:
+
+   ```text
+   Ask planner over intercom: "Your brief marks the null-email decision as assumed. What did you actually verify?"
+   ```
+
+6. **Terminal A** — answer. Terminal C continues in the same turn with a corrected premise.
+
+**What to notice**
+
+- `${@:2}` is the whole compression key. The template does not summarize the session, it
+  summarizes the session *for a stated job*, so a long thread collapses to the slice that
+  bears on that job.
+- The `<keepContext>` block is written by the sender and enforced in the receiver. Those
+  lines survive the receiving session's compaction verbatim, so the constraints outlive the
+  briefing that carried them.
+- `verified` versus `assumed` is the fix for the criticism that handoffs carry the what and
+  not the why. The receiver can see which claims are load-bearing guesses and `ask` about
+  exactly those.
+- Attachments keep bulk out of the prose. The message stays readable; the code arrives
+  intact with its language tag.
+- The template is a file in `.atomic/prompts/`, so it is in git. Your team's handoff rules
+  become a reviewable artifact instead of a habit.
+- Same machine, same repo, and you only want a copy of the context? `/fork` is cheaper.
+  Reach for this when the other end is a separate session with its own model, its own
+  working directory, and its own job.
+
+Prior art: Matt Pocock's [`handoff` skill](https://github.com/mattpocock/skills/blob/main/docs/productivity/handoff.md),
+which writes the same kind of brief to a file. Read it for the discipline about what
+belongs in one; this lesson changes where it lands.
+
+**Reference:** [intercom](https://docs.bastani.ai/intercom) · [prompt-templates](https://docs.bastani.ai/prompt-templates) · [compaction](https://docs.bastani.ai/compaction)
+
 ---
 
 ## Part 6 — Workflows
 
 Workflows are durable, inspectable TypeScript programs that drive agents. Run these lessons from the repo root. Custom workflow files go in `.atomic/workflows/`.
+
+Workflows do not replace skills, tools, and subagents — they orchestrate them. A stage is
+an agent session: it loads the same skills, calls the same tools, and can delegate to the
+same subagents you used in Parts 3 and 5. The division of labor is worth holding onto:
+
+| Primitive | Answers |
+|---|---|
+| Tool | *Can* the agent do this? A capability, and a durable gate when the workflow owns it. |
+| Skill | *How* should it be done here? Instructions that load on demand for the stage that needs them. |
+| Subagent | *Who* does this piece? A bounded specialist with its own context window. |
+| Workflow | *In what order, and how do we know it worked?* Structure, evidence, stop conditions. |
+
+So a verification stage can load `tdd` to force a failing test first, `playwright-cli` to
+drive a real browser, or `impeccable` to judge a UI — and the workflow decides when that
+stage runs, what counts as passing, and what happens when it does not.
 
 The bundled workflows in 6.1 are a starting set, not the ceiling. The point of the system
 is that you can assemble your own **verifiable graph** out of the same primitives: stages
@@ -2545,7 +2655,7 @@ Docs live at <https://docs.bastani.ai/>. Shipped examples live under the install
 - **4.3 SDK** — [sdk](https://docs.bastani.ai/sdk), `examples/sdk/01-minimal.ts`
 - **5.1–5.2 Delegation and worktrees** — [subagents](https://docs.bastani.ai/subagents)
 - **5.3–5.4 Intercom coordination and escalation** — [intercom](https://docs.bastani.ai/intercom), [subagents](https://docs.bastani.ai/subagents)
-- **5.5 Context handoff** — [intercom](https://docs.bastani.ai/intercom)
+- **5.5–5.6 Context handoff** — [intercom](https://docs.bastani.ai/intercom), [prompt-templates](https://docs.bastani.ai/prompt-templates)
 - **6.1–6.5 Workflows** — [workflows](https://docs.bastani.ai/workflows)
 - **A.1 Keybindings** — [keybindings](https://docs.bastani.ai/keybindings)
 - **A.2 Permission gate** — `examples/extensions/permission-gate.ts`
