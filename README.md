@@ -90,9 +90,10 @@ may need swapping for ones your providers actually serve.
 
 **[Part 3 — Customization](#part-3--customization)**
 · [3.1 Build an extension](#31-build-an-extension)
-· [3.2 Full-screen TUI tool](#32-full-screen-tui-tool)
-· [3.3 Write a skill](#33-write-a-skill)
-· [3.4 Custom theme](#34-custom-theme)
+· [3.2 Block a dangerous command](#32-block-a-dangerous-command)
+· [3.3 Full-screen TUI tool](#33-full-screen-tui-tool)
+· [3.4 Write a skill](#34-write-a-skill)
+· [3.5 Custom theme](#35-custom-theme)
 
 **[Part 4 — Platform](#part-4--platform)**
 · [4.1 Headless print and JSON mode](#41-headless-print-and-json-mode)
@@ -559,7 +560,8 @@ Four ways to reshape Atomic itself: extensions add tools and commands, custom UI
 
 ### 3.1 Build an extension
 
-An extension is one TypeScript file. No manifest, no build step. This one registers an LLM-callable `greet` tool, a `/hello` command, and a `tool_call` interceptor that blocks `rm -rf` behind a confirm dialog.
+An extension is one TypeScript file. No manifest, no build step. This one reacts to a
+session event, registers an LLM-callable `greet` tool, and adds a `/hello` command.
 
 Atomic auto-discovers extensions from four locations:
 
@@ -588,13 +590,6 @@ export default function (pi: ExtensionAPI) {
   // React to events
   pi.on("session_start", async (_event, ctx) => {
     ctx.ui.notify("Extension loaded!", "info");
-  });
-
-  pi.on("tool_call", async (event, ctx) => {
-    if (event.toolName === "bash" && event.input.command?.includes("rm -rf")) {
-      const ok = await ctx.ui.confirm("Dangerous!", "Allow rm -rf?");
-      if (!ok) return { block: true, reason: "Blocked by user" };
-    }
   });
 
   // Register a custom tool
@@ -633,25 +628,69 @@ Then, in the same session:
    Use the greet tool to greet someone named Ada.
    ```
 
-4. Trip the interceptor:
+4. Edit the greeting text in the file, run `/reload`, and run `/hello` again to see the change.
+
+**What to notice**
+
+- Plain TypeScript with TypeBox schemas. The tool signature you declare is the schema the model sees.
+- Three different surfaces from one file: an event handler, a tool the model can call, and a slash command only you can call.
+- `/reload` re-reads auto-discovered extensions without restarting the session. For a file outside those locations, quick-test it with `atomic -e ./my-extension.ts`.
+
+**Reference:** [extensions](https://docs.bastani.ai/extensions)
+
+### 3.2 Block a dangerous command
+
+Same API, different job. Extensions are also a policy layer: the `tool_call` event fires
+before a tool runs, and returning `{ block: true, reason }` stops it. Here you put a confirm
+dialog in front of `rm -rf`.
+
+**Try it**
+
+1. Paste this prompt and the TypeScript block after it as one message:
+
+   ```text
+   Create .atomic/extensions/safe-bash.ts with EXACTLY the TypeScript content below, byte for byte:
+   ```
+
+   ```typescript
+   import type { ExtensionAPI } from "@bastani/atomic";
+
+   export default function (pi: ExtensionAPI) {
+     pi.on("tool_call", async (event, ctx) => {
+       if (event.toolName !== "bash") return;
+       if (!event.input.command?.includes("rm -rf")) return;
+
+       const ok = await ctx.ui.confirm("Dangerous!", "Allow rm -rf?");
+       if (!ok) return { block: true, reason: "Blocked by user" };
+     });
+   }
+   ```
+
+2. Run `/reload`, then trip the interceptor:
 
    ```text
    Run this exact bash command: rm -rf /tmp/does-not-exist-demo
    ```
 
-   A confirm dialog appears. Choose No, and the model receives `Blocked by user` instead of a result.
-5. Edit the greeting text in the file, run `/reload`, and run `/hello` again to see the change.
+   A confirm dialog appears. Choose **No**.
+3. Expand the tool output with CTRL+O. The model receives `Blocked by user` as the tool
+   result and carries on instead of failing.
+4. Run it again and choose **Yes**. The command executes normally.
 
 **What to notice**
 
-- Plain TypeScript with TypeBox schemas. The tool signature you declare is the schema the model sees.
-- `tool_call` fires before the tool executes and can block it. That makes extensions a policy layer, not just a UI layer.
-- `/reload` re-reads auto-discovered extensions without restarting the session. For a file outside those locations, quick-test it with `atomic -e ./my-extension.ts`.
-- Atomic ships guardrail examples built the same way: `permission-gate.ts`, `protected-paths.ts`, `confirm-destructive.ts`, and `dirty-repo-guard.ts`.
+- The handler returns nothing for calls it does not care about. Returning `undefined` means
+  "no opinion", so an interceptor stays cheap.
+- The block reason goes to the model as the tool result, so it can explain itself or pick
+  another approach. It is not a crash.
+- This gate only covers one string in one tool. [A.2](#a2-permission-gate-extension) builds
+  the real version: a pattern list, and a hard block when there is no UI to confirm with.
+- Atomic ships more guardrails built the same way: `permission-gate.ts`,
+  `protected-paths.ts`, `confirm-destructive.ts`, and `dirty-repo-guard.ts`.
 
 **Reference:** [extensions](https://docs.bastani.ai/extensions)
 
-### 3.2 Full-screen TUI tool
+### 3.3 Full-screen TUI tool
 
 Extensions are not limited to notifications. `ctx.ui.custom()` replaces the chat editor with your own keyboard-driven component until you call `done()`. The shipped `question.ts` example uses it to render an options list plus an inline editor.
 
@@ -688,7 +727,7 @@ The `ctx.ui.custom()` callback receives:
 
 **Reference:** [extensions](https://docs.bastani.ai/extensions)
 
-### 3.3 Write a skill
+### 3.4 Write a skill
 
 A skill is a folder with a `SKILL.md` and optional helper scripts. Only its name and description sit in the system prompt. The full instructions load on demand when a task matches, or when you force it with `/skill:name`.
 
@@ -773,7 +812,7 @@ Then:
 
 **Reference:** [skills](https://docs.bastani.ai/skills) · [packages](https://docs.bastani.ai/packages)
 
-### 3.4 Custom theme
+### 3.5 Custom theme
 
 The entire TUI is themeable from one JSON file. `vars` keeps the palette DRY, `$schema` gives you editor autocomplete, and editing the currently active theme reloads it instantly.
 
@@ -2415,10 +2454,10 @@ Docs live at <https://docs.bastani.ai/>. Shipped examples live under the install
 - **2.1 Branching** — [sessions](https://docs.bastani.ai/sessions), [compaction](https://docs.bastani.ai/compaction), README
 - **2.2 Compaction** — [compaction](https://docs.bastani.ai/compaction), [settings](https://docs.bastani.ai/settings), README
 - **2.3 Session format** — [session-format](https://docs.bastani.ai/session-format), [sessions](https://docs.bastani.ai/sessions), [usage](https://docs.bastani.ai/usage)
-- **3.1 Extensions** — [extensions](https://docs.bastani.ai/extensions)
-- **3.2 Custom TUI tool** — [extensions](https://docs.bastani.ai/extensions), `examples/extensions/question.ts`
-- **3.3 Skills** — [skills](https://docs.bastani.ai/skills), [packages](https://docs.bastani.ai/packages)
-- **3.4 Themes** — [themes](https://docs.bastani.ai/themes)
+- **3.1–3.2 Extensions** — [extensions](https://docs.bastani.ai/extensions)
+- **3.3 Custom TUI tool** — [extensions](https://docs.bastani.ai/extensions), `examples/extensions/question.ts`
+- **3.4 Skills** — [skills](https://docs.bastani.ai/skills), [packages](https://docs.bastani.ai/packages)
+- **3.5 Themes** — [themes](https://docs.bastani.ai/themes)
 - **4.1 Headless and JSON** — [json](https://docs.bastani.ai/json), [usage](https://docs.bastani.ai/usage)
 - **4.2 Models and providers** — [models](https://docs.bastani.ai/models), [providers](https://docs.bastani.ai/providers), [custom-provider](https://docs.bastani.ai/custom-provider)
 - **4.3 SDK** — [sdk](https://docs.bastani.ai/sdk), `examples/sdk/01-minimal.ts`
