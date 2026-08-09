@@ -1,8 +1,10 @@
 # Atomic crash course
 
-A hands-on course for [Atomic](https://docs.bastani.ai/), the coding agent that runs in
-your terminal. Six parts, thirty-ish lessons, roughly three hours end to end. Every lesson
-is a thing you type and a thing you should see.
+A hands-on course for [Atomic](https://github.com/bastani-inc/atomic), the coding agent
+that runs in your terminal. Six parts, thirty-ish lessons, roughly three hours end to end.
+Every lesson is a thing you type and a thing you should see.
+
+**Repo:** <https://github.com/bastani-inc/atomic> · **Docs:** <https://docs.bastani.ai/>
 
 You start with a plain chat session and finish having written your own tools, skills,
 themes, subagents, and a durable workflow with a bounded repair loop. The repo you are
@@ -10,11 +12,18 @@ reading this in **is** the workspace: the seed files the lessons edit are alread
 
 ## Before you start
 
-You need:
+Install Atomic and log in once — [installation and auth](https://docs.bastani.ai/quickstart):
+
+```bash
+bun install -g @bastani/atomic   # or: npm install -g @bastani/atomic
+atomic
+/login                           # then pick a provider
+```
+
+You also need:
 
 | | |
 |---|---|
-| `atomic` | The binary. Install it, then run `/login` once for at least one provider. |
 | `git` | Lesson 5.2 needs a clean working tree. |
 | `bun` | Runs the TypeScript seed files and the SDK sample. |
 
@@ -24,15 +33,18 @@ it degrades to non-durable without one).
 
 ## Setup
 
-From the repo root:
+Clone this repo and open it with Atomic:
 
 ```bash
+git clone https://github.com/bastani-inc/atomic-crash-course
+cd atomic-crash-course
 atomic -a
 ```
 
 `-a` trusts this repo's project-local `.atomic/` resources — the extensions, skills,
-themes, agents, and workflows the lessons create. Without it, Atomic ignores them.
-See [security](https://docs.bastani.ai/security).
+themes, agents, and workflows the lessons create. Without it, Atomic ignores them. See
+[project trust](https://docs.bastani.ai/security) and
+[settings](https://docs.bastani.ai/settings).
 
 The seed files are already committed:
 
@@ -2441,5 +2453,5 @@ Two things this course did not cover, both worth an afternoon:
 - The bundled web tools `web_search` and `fetch_content` are themselves extensions — read
   them for a working example of a non-trivial extension.
 
-Full docs: <https://docs.bastani.ai/>. The installed package ships an `examples/` ladder
-that goes deeper than anything here.
+Full docs: <https://docs.bastani.ai/>. Source, issues, and the shipped `examples/` ladder:
+<https://github.com/bastani-inc/atomic>.
