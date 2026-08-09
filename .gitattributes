@@ -1,0 +1,28 @@
+# Normalize line endings: LF in the repo, native on checkout.
+* text=auto eol=lf
+
+# Explicit types
+*.md        text diff=markdown
+*.ts        text diff=typescript
+*.js        text diff=javascript
+*.json      text
+*.jsonl     text
+*.toml      text
+*.sh        text eol=lf
+*.yml       text
+*.yaml      text
+
+# Binary / no diff
+*.png       binary
+*.jpg       binary
+*.gif       binary
+*.ico       binary
+*.pdf       binary
+
+# Generated files: collapse in diffs and exclude from language stats
+package-lock.json  linguist-generated=true -diff
+bun.lock           linguist-generated=true -diff
+bun.lockb          binary linguist-generated=true
+
+# Keep demo scratch dirs out of GitHub language stats
+.atomic/**  linguist-documentation
